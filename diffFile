@@ -1,0 +1,487 @@
+===============================================================================
+#! /bin/sh -x
+if [ $1x != x ] ; then cd $1 ; fi
+# conversion from bison++-1.21-6 to bison++-1.21-7
+# directory .
+# file ./ChangeLog changed
+ed - ./ChangeLog << '-@-END-@-'
+0a
+Changes between 1.19-6 and 1.21-7
+	- bison.cc, bison.h : use macro to simulate goto in yyparse. for sun c++.
+	- bison.cc : mismatch in #if between YY_USE_CLASS and compatibility just
+        before including #define tokens. added a #endif and a #ifndef YY_USE_CLASS
+	- generate enum to replace enventually the static const
+	- output.c, files.c : manage to put #line in generated code, such that the generated code is correctly indicated in the output file.
+.
+w
+q
+-@-END-@-
+# file ./files.c changed
+ed - ./files.c << '-@-END-@-'
+469a
+          lftmp++;
+.
+467c
+		{if(c=='\n') lftmp++;
+		 if(c==*pospattern++ && c)
+		  {if(*pospattern==0)
+		    {fprintf(ftmp,"%d \"%s\"",lftmp+1
+                                             ,quoted_filename(defsfile));
+                     pospattern=pattern;continue;}
+		  }
+		 else pospattern=pattern;
+		 putc(c,ftmp);
+		}
+.
+463a
+          lftmp+=2;
+.
+460c
+	{ lftmp=1;
+.
+455c
+	{if(c=='\n') lftmp++;
+	 if(c== *pospattern++ && c)
+          {if(*pospattern==0)
+            {fprintf(ftmp,"%d \"%s\"",lftmp+1, quoted_filename(tabfile));
+             pospattern=pattern;continue;}
+          }
+         else pospattern=pattern;
+         putc(c,ftmp);
+        }
+.
+452c
+      lftmp++;
+.
+450a
+
+.
+448c
+      int lftmp=1;
+      char *pattern="\n#line @";
+      char *pospattern=pattern;
+.
+w
+q
+-@-END-@-
+# file ./output.c changed
+ed - ./output.c << '-@-END-@-'
+1579a
+};
+/* create a list like
+	,FIRST_TOKEN=256
+	,SECOND_TOKEN=257
+*/
+void output_token_enum(file)
+FILE *file;
+{
+ output_token_defines_fmt(file,"\t,%s=%d\n",0);
+ if (semantic_parser) /* just for compatibility with semantic parser */
+  output_token_defines_fmt(file,"\t,T%s=%d\n",1);
+.
+1547a
+      output_section(fhskel,fdefines);  /* new section */
+      output_token_enum(fdefines); /* enum */
+.
+1538a
+  output_section(fparser,ftable);  /* new section */
+  output_token_enum(ftable); /* enum */
+.
+1405a
+                }
+.
+1403,1404c
+   		{fprintf(fout,
+                "\n/* #line %d \"%s\" */\n#line @\n",
+.
+183a
+void output_token_enum();
+.
+w
+q
+-@-END-@-
+# file ./version.c changed
+ed - ./version.c << '-@-END-@-'
+1c
+char *version_string = "bison++ Version 1.21-7, adapted from GNU bison by coetmeur@icdc.fr\n";
+.
+w
+q
+-@-END-@-
+# file ./bison.cc changed
+ed - ./bison.cc << '-@-END-@-'
+905c
+  YYGOTO(yynewstate);
+/* end loop, in which YYGOTO may be used. */
+  YYENDGOTO
+.
+889c
+    YYGOTO(yyerrpop);
+.
+886c
+      YYGOTO(yyreduce);
+.
+884c
+	YYGOTO(yyerrpop);
+.
+878c
+    YYGOTO(yyerrdefault);
+.
+874c
+    YYGOTO(yyerrdefault);
+.
+870c
+YYLABEL(yyerrhandle)
+.
+850c
+YYLABEL(yyerrpop)   /* pop the current state because it cannot handle the error token */
+.
+847c
+  if (yyn) YYGOTO(yydefault);
+.
+841c
+YYLABEL(yyerrdefault)  /* current state does not do anything special for the error token. */
+.
+839c
+  YYGOTO(yyerrhandle);
+.
+815,816c
+  YYGOTO(yyerrlab1);
+YYLABEL(yyerrlab1)   /* here on error raised explicitly by an action */
+.
+764c
+YYLABEL(yyerrlab)   /* here on detecting error */
+.
+762c
+  YYGOTO(yynewstate);
+.
+692c
+YYLABEL(yyreduce)
+.
+689c
+    YYGOTO(yyerrlab);
+.
+685c
+YYLABEL(yydefault)
+.
+682c
+  YYGOTO(yynewstate);
+.
+657c
+    YYGOTO(yyerrlab);
+.
+654c
+      YYGOTO(yyreduce);
+.
+652c
+	YYGOTO(yyerrlab);
+.
+638c
+    YYGOTO(yydefault);
+.
+590c
+    YYGOTO(yydefault);
+.
+584c
+/* YYLABEL(yyresume) */
+.
+579,580c
+  YYGOTO(yybackup);
+YYLABEL(yybackup)
+.
+500c
+YYLABEL(yynewstate)
+.
+480d
+474a
+/* start loop, in which YYGOTO may be used. */
+YYBEGINGOTO
+.
+392a
+
+.
+391d
+332c
+      YYGOTO(yybackup);                                            \
+.
+324c
+#define YYFAIL          YYGOTO(yyerrlab)
+.
+319c
+#define YYERROR         YYGOTO(yyerrlab1)
+.
+312a
+#if YY_@_USE_GOTO != 0
+/*
+ SUPRESSION OF GOTO : on some C++ compiler (sun c++)
+  the goto is strictly forbidden if any constructor/destructor
+  is used in the whole function (very stupid isn't it ?)
+ so goto are to be replaced with a 'while/switch/case construct'
+ here are the macro to keep some apparent compatibility
+*/
+#define YYGOTO(lb) {yy_gotostate=lb;continue;}
+#define YYBEGINGOTO  enum yy_labels yy_gotostate=yygotostart; \
+                     for(;;) switch(yy_gotostate) { case yygotostart: {
+#define YYLABEL(lb) } case lb: {
+#define YYENDGOTO } }
+#define YYBEGINDECLARELABEL enum yy_labels {yygotostart
+#define YYDECLARELABEL(lb) ,lb
+#define YYENDDECLARELABEL  };
+#else
+/* macro to keep goto */
+#define YYGOTO(lb) goto lb
+#define YYBEGINGOTO
+#define YYLABEL(lb) lb:
+#define YYENDGOTO
+#define YYBEGINDECLARELABEL
+#define YYDECLARELABEL(lb)
+#define YYENDDECLARELABEL
+#endif
+/* LABEL DECLARATION */
+YYBEGINDECLARELABEL
+  YYDECLARELABEL(yynewstate)
+  YYDECLARELABEL(yybackup)
+/* YYDECLARELABEL(yyresume) */
+  YYDECLARELABEL(yydefault)
+  YYDECLARELABEL(yyreduce)
+  YYDECLARELABEL(yyerrlab)   /* here on detecting error */
+  YYDECLARELABEL(yyerrlab1)   /* here on error raised explicitly by an action */
+  YYDECLARELABEL(yyerrdefault)  /* current state does not do anything special for the error token. */
+  YYDECLARELABEL(yyerrpop)   /* pop the current state because it cannot handle the error token */
+  YYDECLARELABEL(yyerrhandle)
+YYENDDECLARELABEL
+
+.
+289a
+#endif
+.
+288a
+#if YY_@_USE_CONST_TOKEN != 0
+.
+261a
+#else
+enum YY_@_ENUM_TOKEN { YY_@_NULL_TOKEN=0
+$ /* enum token */
+     }; /* end of enum declaration */
+#endif
+.
+260c
+public:
+#if YY_@_USE_CONST_TOKEN != 0
+/* static const int token ... */
+.
+256a
+/* choose between enum and const */
+#ifndef YY_@_USE_CONST_TOKEN
+#define YY_@_USE_CONST_TOKEN 0
+/* yes enum is more compatible with flex,  */
+/* so by default we use it */
+#endif
+#if YY_@_USE_CONST_TOKEN != 0
+#ifndef YY_@_ENUM_TOKEN
+#define YY_@_ENUM_TOKEN yy_@_enum_token
+#endif
+#endif
+.
+229c
+#endif
+#ifndef YY_USE_CLASS
+/* TOKEN C */
+.
+194d
+110a
+/* use no goto to be clean in C++ */
+#ifndef YY_@_USE_GOTO
+#define YY_@_USE_GOTO 0
+#endif
+
+.
+109a
+#endif
+.
+108a
+/* use goto to be compatible */
+#ifndef YY_@_USE_GOTO
+#define YY_@_USE_GOTO 1
+.
+w
+q
+-@-END-@-
+# file ./bison.h changed
+ed - ./bison.h << '-@-END-@-'
+160a
+#else
+enum YY_@_ENUM_TOKEN { YY_@_NULL_TOKEN=0
+$ /* enum token */
+     }; /* end of enum declaration */
+#endif
+.
+159c
+public:
+#if YY_@_USE_CONST_TOKEN != 0
+/* static const int token ... */
+.
+155a
+/* choose between enum and const */
+#ifndef YY_@_USE_CONST_TOKEN
+#define YY_@_USE_CONST_TOKEN 0
+/* yes enum is more compatible with flex,  */
+/* so by default we use it */
+#endif
+#if YY_@_USE_CONST_TOKEN != 0
+#ifndef YY_@_ENUM_TOKEN
+#define YY_@_ENUM_TOKEN yy_@_enum_token
+#endif
+#endif
+.
+52a
+/* use no goto to be clean in C++ */
+#ifndef YY_@_USE_GOTO
+#define YY_@_USE_GOTO 0
+#endif
+
+.
+51a
+#endif
+.
+50a
+/* use goto to be compatible */
+#ifndef YY_@_USE_GOTO
+#define YY_@_USE_GOTO 1
+.
+w
+q
+-@-END-@-
+# file ./bison++.1.dman changed
+ed - ./bison++.1.dman << '-@-END-@-'
+239c
+	Based on GNU version 1.21 of bison. Modified by the author.
+.
+230a
+	"iostream" : this is a great demand. this work will be done as soon as possible. The virtual members permit such work still easily.
+.
+222c
+	Header is not included in the parser code. Change made in the generated header are not used in the parser code, even if you include it volontarily, since it is guarded against re-include. So don't modify it.
+.
+192,195d
+160,165c
+	public:
+        enum yy_parser_enum_token \{ YY_parser_NULL_TOKEN
+	> ,TOKEN_FIRST=256
+	> ,TOKEN_NEXT=257
+	> ,AND_SO_ON=258
+	\} ;
+.
+135,136c
+	#if \%USE_CONST_TOKEN != 0
+	>const \%CLASS::TOKEN_FIRST=1;
+	>...
+	#endif
+.
+102a
+	#else
+        enum \%ENUM_TOKEN \{ \%NULL_TOKEN
+	> ,TOKEN_FIRST=256
+	> ,TOKEN_NEXT=257
+	> ,AND_SO_ON=258
+	\} ;
+	// ...
+	#endif
+.
+96,99c
+	public:
+	#if \%USE_CONST_TOKEN != 0
+.
+49a
+	-{"USE_GOTO"} Indicates (if defined as 1) that "goto" are to be used  (for backward compatibility) in the parser function. By default "goto" are replaced with a "switch" construction, to avoid problems with some compiler that don't support "goto" and destructor in the same function block. If "COMPATIBILITY" is 1, and "USE_GOTO" is not defined, then "USE_GOTO" is defined to 1, to be compatible with older bison.
+	-{"USE_CONST_TOKEN"} Indicate (if defined as 1) that "static const int" are to be used  in C++, for token IDs. By default an enum is used to define the token IDs instead of  const.
+	-{"ENUM_TOKEN"} When "enum" are used instead of "static const int" for token IDs, this symbol define the name of the enum type. Defined to "yy_"'<parser_name>'"_enum_token" by default.
+.
+w
+q
+-@-END-@-
+# file ./bison++.1 changed
+ed - ./bison++.1 << '-@-END-@-'
+414c
+Based on GNU version 1\.21 of bison\. Modified by the author\.
+.
+405a
+.PP
+\fBiostream\fP : this is a great demand\. this work will be done as soon as possible\. The virtual menbers permit such work still easily\.
+.
+391c
+Header is not included in the parser code\. Change made in the generated header are not used in the parser code, even if you include it volontarily, since it is guarded against re\-include\. So don't modify it\.
+.
+343,350d
+281,286d
+279c
+} ;
+.
+277c
+enum yy_parser_enum_token { YY_parser_NULL_TOKEN
+.\"bloc1[
+.IP
+,TOKEN_FIRST=256
+.IP
+,TOKEN_NEXT=257
+.IP
+,AND_SO_ON=258
+.\"bloc1]
+.
+275c
+public:
+.
+230a
+#endif
+.PP
+.
+229a
+.\"bloc1]
+.
+228c
+.IP
+.
+226a
+#if %USE_CONST_TOKEN != 0
+.\"bloc1[
+.IP
+.
+158a
+#else
+.PP
+enum %ENUM_TOKEN { %NULL_TOKEN
+.\"bloc1[
+.IP
+,TOKEN_FIRST=256
+.IP
+,TOKEN_NEXT=257
+.IP
+,AND_SO_ON=258
+.\"bloc1]
+.PP
+} ;
+.PP
+// \.\.\.
+.PP
+#endif
+.PP
+.
+149,152d
+147c
+#if %USE_CONST_TOKEN != 0
+.
+145c
+public:
+.
+51a
+.IP "\\fBUSE_GOTO\\fP"
+Indicates (if defined as 1) that \fBgoto\fP are to be used (for backward compatibility) in the parser function\. By default \fBgoto\fP are replaced with a \fBswitch\fP construction, to avoid problems with some compiler that don't support \fBgoto\fP and destructor in the same function block\. If \fBCOMPATIBILITY\fP is 1, and \fBUSE_GOTO\fP is not defined, then \fBUSE_GOTO\fP is defined to 1, to be compatible with older bison\.
+.IP "\\fBUSE_CONST_TOKEN\\fP"
+Indicate (if defined as 1) that \fBstatic const int\fP are to be used in C++, for token IDs\. By default an enum is used to define the token IDs instead of const\.
+.IP "\\fBENUM_TOKEN\\fP"
+When \fBenum\fP are used instead of \fBstatic const int\fP for token IDs, this symbol define the name of the enum type\. Defined to \fByy_\fP'\fIparser_name\fP'\fB_enum_token\fP by default\.
+.
+w
+q
+-@-END-@-
+# end of conversion from bison++-1.21-6 to bison++-1.21-7
