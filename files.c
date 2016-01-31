@@ -43,6 +43,7 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "system.h"
 #include "files.h"
 #include "new.h"
@@ -85,7 +86,6 @@ char *header_name=NULL;
 
 
 
-extern char     *mktemp();      /* So the compiler won't complain */
 extern char     *getenv();
 extern void     perror();
 FILE    *tryopen();     /* This might be a good idea */
